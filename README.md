@@ -1,0 +1,121 @@
+# Virtual Piano
+
+A browser-based virtual synthesizer and drum machine built with vanilla JavaScript and the Web Audio API — no frameworks, no build step. Open `index.html` in any modern browser and start playing.
+
+## Features
+
+- **Polyphonic piano** — a canvas-drawn keyboard you can play with the mouse or your computer keyboard
+- **Subtractive synth engine** — waveform selection, ADSR envelope, vibrato, and high/low/band-pass filters
+- **Arpeggiator** — turn any held note into a major or minor arpeggio
+- **TR-808-style drum machine** — 10 synthesized drum voices with a step sequencer, live recording, and per-instrument tone controls
+
+## Getting Started
+
+There is nothing to install. Just open the app:
+
+```bash
+# Option 1: open the file directly
+open index.html
+
+# Option 2: serve it locally (optional)
+python3 -m http.server 8000
+# then visit http://localhost:8000
+```
+
+> Note: browsers require a user gesture before audio can start — click or press a key once and everything will be ready.
+
+## Playing the Piano
+
+- **Mouse** — click and drag across the keys to play.
+- **Keyboard** — two octaves are mapped to your keyboard:
+  - Lower octave: `Z S X D C V G B H N J M` (C through B, with sharps on `s d g h j`)
+  - Upper octave: `Q 2 W 3 E R 5 T 6 Y 7 U` (C through B, one octave higher, with sharps on `2 3 5 6 7`)
+  - Some notes are available in multiple rows. Experiment to find them.
+- **Base Octave fader** (Keyboard group) — sets which octave `Z` and `Q` start on (C1–C7).
+
+## Shaping the Sound
+
+All controls are **knobs** (drag vertically, scroll to fine-tune, double-click to reset) and **faders**.
+
+### Oscillator
+
+The **Waveform** fader selects the base wave:
+
+| Wave | Character |
+|------|-----------|
+| **Sine** | Pure, soft — great for bass and pads |
+| **Sqr** (square) | Hollow, reedy — classic 8-bit lead |
+| **Saw** | Bright and buzzy — the go-to for leads and bass |
+| **Tri** (triangle) | Mellow, sine-like with a bit more edge |
+| **Sup** (super saw) | Thick, detuned stack — instant width |
+
+### ADSR
+
+- **Attack** — how fast the note fades in (slow = swell)
+- **Decay** — how quickly it settles after the attack
+- **Sustain** — the level held while the key is down
+- **Release** — how long the note rings after you let go
+
+Try: fast attack + high sustain for a plucky lead, or slow attack + low sustain for a pad.
+
+### Vibrato
+
+- **Rate** — speed of the pitch wobble (Hz)
+- **Depth** — how far the pitch swings (cents). 0 = off.
+
+### Filters
+
+Each filter has **Cutoff** and **Resonance**:
+
+- **High-Pass** — removes low end (default is fully open at 20 Hz)
+- **Low-Pass** — the workhorse: lower the cutoff to mellow the sound, raise resonance for a peak
+- **Band-Pass** — isolates a frequency band for bell-like or telephone tones
+
+### Arpeggio
+
+Set **Mode** to **Maj** or **Min** and any note you hold will be arpeggiated at the **Rate** (notes per second).
+
+### Output
+
+The **Volume** fader controls the master synth level.
+
+## Drum Machine
+
+A TR-808-style drum section with 10 synthesized voices: Bass Drum, Snare, Low/Mid/Hi Tom, Hand Clap, Cowbell, Cymbal, and Open/Closed Hi-Hat.
+
+### Transport
+
+- **Tempo** — 40–240 BPM
+- **Start / Stop** — runs the sequencer loop
+- **Rec** — arms live recording: press **Space** on the beat to drop a hit of the selected instrument at the playhead
+- **Clear** — removes all hits
+- **Snap** — quantization grid (2/4/8/12/16/32 per bar, or Off for free placement)
+- **Length** — pattern length, 1–8 bars
+
+### Instruments
+
+- Use the **Instrument** fader to pick which voice you're editing/recording.
+- Each voice has its own **volume** plus sound-shaping knobs (tone, tuning, or decay depending on the drum).
+
+### Pattern Editor
+
+The pattern preview canvas shows one lane per instrument:
+
+- **Click** an empty spot in a lane to add a hit at that position
+- **Drag** a hit to move it (it snaps to the grid)
+- **Click** an existing hit to remove it
+
+## Project Structure
+
+```
+index.html          — app shell
+css/style.css       — styling
+js/
+  app.js            — builds the control panel, wires knobs to the engine
+  audio-engine.js   — Web Audio synth engine (oscillator, ADSR, filters, arpeggio)
+  piano.js          — canvas piano keyboard + computer-keyboard mapping
+  knob.js           — rotary knob control
+  slider.js         — fader control
+  drum-machine.js   — drum synthesis + step sequencer
+  drum-panel.js     — drum machine UI (transport, instruments, pattern editor)
+```
