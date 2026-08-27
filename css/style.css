@@ -1,0 +1,449 @@
+:root {
+  --bg: #0e1013;
+  --panel: #15181e;
+  --panel-2: #1a1e26;
+  --border: #262b34;
+  --text: #e6e9ef;
+  --muted: #8b93a3;
+  --accent: #4fd1c5;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ---------- Header ---------- */
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #171b22, #12151b);
+  flex-shrink: 0;
+}
+
+.app-header h1 {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.app-header .hint {
+  display: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- Control panel ---------- */
+
+#controls {
+  flex: 1 1 0;
+  min-height: 120px;
+  overflow-y: auto;
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+}
+
+.control-group {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 4px 16px;
+  flex-shrink: 1;
+}
+
+.control-group h2 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.knob-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 4px;
+  justify-content: center;
+}
+
+.knob {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 78px;
+  touch-action: none;
+}
+
+.knob canvas {
+  width: 56px;
+  height: 56px;
+  cursor: ns-resize;
+}
+
+.knob .knob-label {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.knob .knob-value {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  min-height: 14px;
+  white-space: nowrap;
+}
+
+/* ---------- Slider (70s fader) ---------- */
+
+.slider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 78px;
+  touch-action: none;
+}
+
+.slider .slider-label {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.slider .slider-value {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  min-height: 14px;
+  white-space: nowrap;
+}
+
+.slider-body {
+  position: relative;
+  width: 44px;
+  height: 72px;
+}
+
+/* recessed groove */
+.slider-track {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 10px;
+  height: 72px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, #05070a, #10141b 50%, #05070a);
+  border: 1px solid #05070a;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.9),
+    0 1px 0 rgba(255, 255, 255, 0.04);
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+/* lit portion of the groove below the cap (fills from the bottom) */
+.slider-fill {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  height: 0;
+  border-radius: 5px;
+  background: linear-gradient(
+    0deg,
+    rgba(79, 209, 197, 0.12),
+    rgba(79, 209, 197, 0.55)
+  );
+  pointer-events: none;
+}
+
+/* the sliding cap */
+.slider-cap {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 30px;
+  height: 16px;
+  transform: translateX(-50%);
+  border-radius: 3px;
+  background: linear-gradient(180deg, #4a5262 0%, #2b313d 45%, #171b23 100%);
+  border: 1px solid #05070a;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+
+/* center indicator line on the cap */
+.slider-cap::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  border-radius: 1px;
+  background: linear-gradient(90deg, transparent, #e6e9ef 30%, #e6e9ef 70%, transparent);
+  box-shadow: 0 0 4px rgba(230, 233, 239, 0.5);
+}
+
+/* position ticks + labels to the right of the groove */
+.slider-ticks {
+  position: absolute;
+  left: 31px;
+  top: 0;
+  width: 0;
+  height: 72px;
+  pointer-events: none;
+}
+
+.slider-tick {
+  position: absolute;
+  left: 0;
+  transform: translateY(-50%);
+  font-size: 9px;
+  line-height: 1;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.slider-tick::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  width: 3px;
+  height: 1px;
+  transform: translateY(-50%);
+  background: #3a4150;
+}
+
+.slider-tick.active {
+  color: var(--accent);
+}
+
+.slider-tick.active::before {
+  background: var(--accent);
+}
+
+/* ---------- Piano ---------- */
+
+#piano-container {
+  flex: 0 1 33.333vh;
+  min-height: 150px;
+  border-top: 1px solid var(--border);
+  background: #0a0c0f;
+  position: relative;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
+}
+
+#piano {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: pointer;
+}
+
+/* ---------- Drum machine (TR-808 style) ---------- */
+
+#drum-machine {
+  flex: 0 1 auto;
+  min-height: 180px;
+  max-height: 380px;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, #14171d, #101318);
+  padding: 10px 16px 12px;
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.drum-group {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.drum-group h2 {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.drum-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.drum-row .knob {
+  width: 64px;
+}
+
+.drum-row .knob .knob-label,
+.drum-row .knob .knob-value {
+  font-size: 10px;
+}
+
+.drum-row .slider {
+  width: 64px;
+}
+
+/* transport buttons stacked in a column */
+.drum-btn-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-self: center;
+}
+
+.drum-btn-col .drum-btn {
+  align-self: stretch;
+}
+
+/* one column per instrument: volume knob on top, sound knobs below */
+.drum-inst-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.drum-inst-col .knob {
+  width: 64px;
+}
+
+.drum-inst-col .knob .knob-label,
+.drum-inst-col .knob .knob-value {
+  font-size: 10px;
+}
+
+.drum-btn {
+  align-self: center;
+  min-width: 52px;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: linear-gradient(180deg, #2b313d, #1c212b);
+  border: 1px solid #05070a;
+  border-radius: 6px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.drum-btn:active {
+  transform: translateY(1px);
+}
+
+.drum-btn.active {
+  color: #0e1013;
+  background: linear-gradient(180deg, #6ee7db, #4fd1c5);
+  box-shadow:
+    0 0 10px rgba(79, 209, 197, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.drum-btn.record.active {
+  color: #1a0505;
+  background: linear-gradient(180deg, #ff8a80, #e53935);
+  box-shadow:
+    0 0 10px rgba(229, 57, 53, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* tempo indicator light */
+.drum-light {
+  align-self: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #232833;
+  border: 1px solid #05070a;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.7);
+  transition: background 0.08s ease-out, box-shadow 0.08s ease-out;
+}
+
+.drum-light.beat {
+  background: #ffffff;
+  box-shadow: 0 0 14px 3px rgba(255, 255, 255, 0.8);
+}
+
+.drum-light.bar {
+  background: #ff1744;
+  box-shadow: 0 0 14px 3px rgba(255, 23, 68, 0.8);
+}
+
+/* pattern preview */
+.drum-preview-group {
+  flex: 1;
+  min-width: 260px;
+}
+
+#drum-preview-canvas {
+  flex: 1;
+  width: 100%;
+  min-height: 150px;
+  max-height: 270px;
+  background: #0a0c0f;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  touch-action: none;
+  cursor: crosshair;
+}
