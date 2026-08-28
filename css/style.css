@@ -408,6 +408,83 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
+.drum-btn.save {
+  color: #4fd1c5;
+  border-color: rgba(79, 209, 197, 0.4);
+}
+
+.drum-btn.save:hover {
+  background: linear-gradient(180deg, #313845, #20262f);
+}
+
+/* pattern group: header row with title + menu button */
+.drum-pattern-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.drum-pattern-header h2 {
+  margin-bottom: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 12px;
+}
+
+.drum-menu-btn {
+  min-width: 30px;
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* dropdown menu (position: fixed, coordinates set by JS) */
+.drum-menu {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: #1a1f27;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  min-width: 160px;
+}
+
+.drum-menu .drum-btn {
+  align-self: stretch;
+}
+
+/* pattern name field (inside the menu) */
+.drum-name-input {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--text);
+  background: #14181f;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  outline: none;
+}
+
+.drum-name-input::placeholder {
+  color: var(--muted);
+}
+
+.drum-name-input:focus {
+  border-color: rgba(79, 209, 197, 0.5);
+  box-shadow: 0 0 6px rgba(79, 209, 197, 0.25);
+}
+
 /* tempo indicator light */
 .drum-light {
   align-self: center;

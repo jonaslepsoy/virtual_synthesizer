@@ -370,4 +370,165 @@ class DrumMachine {
     this.engine.ensure();
     this.trigger(inst, this.engine.ctx.currentTime);
   }
+
+  /* ---------------- serialization ---------------- */
+
+  static FORMAT = "virtual-piano-drum";
+  static VERSION = 1;
+
+  /** Plain-data snapshot of the full machine state (JSON-safe). */
+  serialize() {
+    return {
+      format: DrumMachine.FORMAT,
+      version: DrumMachine.VERSION,
+      params: { ...this.params },
+      levels: { ...this.levels },
+      tones: { ...this.tones },
+      tunings: { ...this.tunings },
+      decays: { ...this.decays },
+      hits: this.hits.map((h) => ({ t: h.t, inst: h.inst })),
+    };
+  }
+
+  /**
+   * Restore machine state from a serialized object.
+   * Throws an Error with a clear message if the data is invalid.
+   */
+  restore(data) {
+    if (!data || typeof data !== "object") {
+      throw new Error("Invalid pattern file: not a JSON object.");
+    }
+    if (data.format !== DrumMachine.FORMAT) {
+      throw new Error(
+        `Invalid pattern file: expected format "${DrumMachine.FORMAT}", got "${data.format}".`
+      );
+    }
+    if (data.version !== DrumMachine.VERSION) {
+      throw new Error(
+        `Unsupported pattern file version ${data.version} (expected ${DrumMachine.VERSION}).`
+      );
+    }
+
+    // Ranges must match the UI widget ranges in drum-panel.js, so that
+    // restore() and _syncWidgetsFromMachine() can never disagree.
+    const RANGES = {
+      tempo: [40, 240],
+      master: [0, 1],
+      level: [0, 1],
+      tone_bd: [60, 300],
+      tone_sd: [1000, 8000],
+      tone_cy: [3000, 10000],
+      tuning: [0.5, 2],
+      decay_bd: [0.1, 1.5],
+      decay_cy: [0.3, 4],
+      decay_oh: [0.1, 1.5],
+    };
+    const check = (v, [lo, hi], what) => {
+      if (typeof v !== "number" || !isFinite(v) || v < lo || v > hi) {
+        throw new Error(`Invalid pattern file: ${what} must be ${lo}..${hi}, got ${v}.`);
+      }
+    };
+
+    // Params (validated against the UI ranges).
+    if (data.params && typeof data.params === "object") {
+      if (typeof data.params.tempo === "number") {
+        check(data.params.tempo, RANGES.tempo, "tempo");
+        this.setTempo(data.params.tempo);
+      }
+      if (typeof data.params.snap === "number") {
+        if (!SNAP_DIVISIONS.includes(data.params.snap)) {
+          throw new Error(
+            `Invalid pattern file: snap must be one of [${SNAP_DIVISIONS.join(", ")}], got ${data.params.snap}.`
+          );
+        }
+        this.setSnap(data.params.snap);
+      }
+      if (typeof data.params.bars === "number") {
+        const bars = Math.round(data.params.bars);
+        if (bars < 1 || bars > 8) {
+          throw new Error(`Invalid pattern file: bars must be 1..8, got ${data.params.bars}.`);
+        }
+        this.setBars(bars);
+      }
+      if (typeof data.params.master === "number") {
+        check(data.params.master, RANGES.master, "master");
+        this.setMaster(data.params.master);
+      }
+    }
+
+    // Per-instrument settings (unknown ids are ignored).
+    const knownIds = new Set(DRUM_INSTRUMENTS.map((d) => d.id));
+    const applyMap = (src, setter, rangeFor, what) => {
+      if (!src || typeof src !== "object") return;
+      for (const id of Object.keys(src)) {
+        if (!knownIds.has(id)) continue;
+        const range = rangeFor ? rangeFor(id) : null;
+        if (range) check(src[id], range, `${what} (${id})`);
+        setter(id, src[id]);
+      }
+    };
+    applyMap(data.levels, (id, v) => this.setLevel(id, v), () => RANGES.level, "level");
+    applyMap(
+      data.tones,
+      (id, v) => this.setTone(id, v),
+      (id) => RANGES["tone_" + id],
+      "tone"
+    );
+    applyMap(data.tunings, (id, v) => this.setTuning(id, v), () => RANGES.tuning, "tuning");
+    applyMap(
+      data.decays,
+      (id, v) => this.setDecay(id, v),
+      (id) => RANGES["decay_" + id],
+      "decay"
+    );
+    // Tone/decay only exist for some instruments; reject entries for the rest
+    // so the file can never hold state the UI cannot display.
+    for (const [key, allowed] of [
+      ["tones", ["bd", "sd", "cy"]],
+      ["decays", ["bd", "cy", "oh"]],
+    ]) {
+      const src = data[key];
+      if (!src || typeof src !== "object") continue;
+      for (const id of Object.keys(src)) {
+        if (knownIds.has(id) && !allowed.includes(id)) {
+          throw new Error(
+            `Invalid pattern file: ${key}.${id} is not a valid ${key.slice(0, -1)} parameter.`
+          );
+        }
+      }
+    }
+
+    // Hits.
+    if (data.hits !== undefined) {
+      if (!Array.isArray(data.hits)) {
+        throw new Error("Invalid pattern file: \"hits\" must be an array.");
+      }
+      const total = this.totalTicks;
+      const n = DRUM_INSTRUMENTS.length;
+      const hits = [];
+      for (const h of data.hits) {
+        if (
+          !h ||
+          typeof h.t !== "number" ||
+          !isFinite(h.t) ||
+          typeof h.inst !== "number" ||
+          !Number.isInteger(h.inst) ||
+          h.inst < 0 ||
+          h.inst >= n
+        ) {
+          throw new Error(
+            `Invalid hit in pattern file: expected { t: number, inst: 0..${n - 1} }, got ${JSON.stringify(h)}.`
+          );
+        }
+        if (h.t < 0 || h.t >= total) {
+          throw new Error(
+            `Hit at t=${h.t} is out of range (0..${total - 1}) for ${this.params.bars} bar(s).`
+          );
+        }
+        hits.push({ t: h.t, inst: h.inst });
+      }
+      hits.sort((a, b) => a.t - b.t);
+      this.hits = hits;
+    }
+  }
 }

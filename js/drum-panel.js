@@ -46,14 +46,17 @@ class DrumPanel {
 
   _build() {
     const m = this.machine;
-    const knob = (row, opts) => {
+    this._widgets = {};
+    const knob = (row, opts, key) => {
       const k = new Knob(opts);
       row.appendChild(k.wrap);
+      if (key) this._widgets[key] = k;
       return k;
     };
-    const slider = (row, opts) => {
+    const slider = (row, opts, key) => {
       const s = new Slider(opts);
       row.appendChild(s.wrap);
+      if (key) this._widgets[key] = s;
       return s;
     };
 
@@ -69,7 +72,7 @@ class DrumPanel {
       size: 84,
       format: (v) => Math.round(v) + " BPM",
       onChange: (v) => m.setTempo(v),
-    });
+    }, "tempo");
     tempoKnob.wrap.style.width = "96px";
 
     const btnCol = document.createElement("div");
@@ -112,7 +115,7 @@ class DrumPanel {
         return d === 0 ? "Off" : String(d);
       },
       onChange: (v) => m.setSnap(SNAP_DIVISIONS[Math.round(v)]),
-    });
+    }, "snap");
 
     slider(transport, {
       label: "Length",
@@ -125,7 +128,7 @@ class DrumPanel {
       format: (v) =>
         Math.round(v) + (Math.round(v) === 1 ? " bar" : " bars"),
       onChange: (v) => m.setBars(v),
-    });
+    }, "bars");
 
     this.lightEl = document.createElement("div");
     this.lightEl.className = "drum-light";
@@ -144,7 +147,7 @@ class DrumPanel {
       labels: DRUM_INSTRUMENTS.map((d) => d.short),
       format: (v) => DRUM_INSTRUMENTS[Math.round(v)].name,
       onChange: (v) => (this.selectedInst = Math.round(v)),
-    });
+    }, "instrument");
     DRUM_INSTRUMENTS.forEach((d) => {
       const col = document.createElement("div");
       col.className = "drum-inst-col";
@@ -159,7 +162,7 @@ class DrumPanel {
         size: 44,
         format: (v) => Math.round(v * 100) + "%",
         onChange: (v) => m.setLevel(d.id, v),
-      });
+      }, "level_" + d.id);
 
       if (d.id === "bd") {
         knob(col, {
@@ -171,7 +174,7 @@ class DrumPanel {
           size: 44,
           format: (v) => Math.round(v) + " Hz",
           onChange: (v) => m.setTone("bd", v),
-        });
+        }, "tone_bd");
         knob(col, {
           label: "Decay BD",
           value: m.decays.bd,
@@ -181,7 +184,7 @@ class DrumPanel {
           size: 44,
           format: (v) => v.toFixed(2) + "s",
           onChange: (v) => m.setDecay("bd", v),
-        });
+        }, "decay_bd");
       } else if (d.id === "sd") {
         knob(col, {
           label: "Tone SD",
@@ -192,7 +195,7 @@ class DrumPanel {
           size: 44,
           format: (v) => (v / 1000).toFixed(1) + "k",
           onChange: (v) => m.setTone("sd", v),
-        });
+        }, "tone_sd");
       } else if (d.id === "lt" || d.id === "mt" || d.id === "ht") {
         knob(col, {
           label: "Tune " + d.short,
@@ -203,7 +206,7 @@ class DrumPanel {
           size: 44,
           format: (v) => v.toFixed(2) + "x",
           onChange: (v) => m.setTuning(d.id, v),
-        });
+        }, "tune_" + d.id);
       } else if (d.id === "cy") {
         knob(col, {
           label: "Tone CY",
@@ -214,7 +217,7 @@ class DrumPanel {
           size: 44,
           format: (v) => (v / 1000).toFixed(1) + "k",
           onChange: (v) => m.setTone("cy", v),
-        });
+        }, "tone_cy");
         knob(col, {
           label: "Decay CY",
           value: m.decays.cy,
@@ -224,7 +227,7 @@ class DrumPanel {
           size: 44,
           format: (v) => v.toFixed(1) + "s",
           onChange: (v) => m.setDecay("cy", v),
-        });
+        }, "decay_cy");
       } else if (d.id === "oh") {
         knob(col, {
           label: "Decay OH",
@@ -235,7 +238,7 @@ class DrumPanel {
           size: 44,
           format: (v) => v.toFixed(2) + "s",
           onChange: (v) => m.setDecay("oh", v),
-        });
+        }, "decay_oh");
       }
     });
 
@@ -250,15 +253,100 @@ class DrumPanel {
       size: 44,
       format: (v) => Math.round(v * 100) + "%",
       onChange: (v) => m.setMaster(v),
-    });
+    }, "master");
 
     /* ---- Pattern preview ---- */
-    const previewGroup = this._group("Pattern");
-    previewGroup.parentElement.classList.add("drum-preview-group");
+    const previewRow = this._group("Pattern");
+    const previewGroup = previewRow.parentElement;
+    previewGroup.classList.add("drum-preview-group");
+
+    // Header row: title (left) + menu button (right)
+    const h2 = previewGroup.querySelector("h2");
+    this.patternTitle = h2;
+    const header = document.createElement("div");
+    header.className = "drum-pattern-header";
+    previewGroup.insertBefore(header, previewRow);
+    header.appendChild(h2);
+
+    this.btnMenu = document.createElement("button");
+    this.btnMenu.className = "drum-btn drum-menu-btn";
+    this.btnMenu.textContent = "⋯";
+    this.btnMenu.title = "Pattern menu";
+    header.appendChild(this.btnMenu);
+
+    // Dropdown: name field + Save / Load
+    this.menu = document.createElement("div");
+    this.menu.className = "drum-menu";
+    this.menu.style.display = "none";
+
+    this.nameInput = document.createElement("input");
+    this.nameInput.type = "text";
+    this.nameInput.className = "drum-name-input";
+    this.nameInput.placeholder = "Pattern name";
+    this.nameInput.value = "untitled";
+    this.nameInput.spellcheck = false;
+    this.nameInput.addEventListener("input", () => this._updatePatternTitle());
+    this.menu.appendChild(this.nameInput);
+
+    this.btnSave = this._button("Save", "save");
+    this.btnSave.addEventListener("click", () => {
+      this._save();
+      this._closeMenu();
+      this.btnSave.blur();
+    });
+    this.menu.appendChild(this.btnSave);
+
+    this.btnLoad = this._button("Load");
+    this.btnLoad.addEventListener("click", () => {
+      this._load();
+      this._closeMenu();
+      this.btnLoad.blur();
+    });
+    this.menu.appendChild(this.btnLoad);
+
+    document.body.appendChild(this.menu);
+
+    this.btnMenu.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this._toggleMenu();
+      this.btnMenu.blur();
+    });
+    this.menu.addEventListener("click", (e) => e.stopPropagation());
+    document.addEventListener("click", () => this._closeMenu());
+    window.addEventListener("resize", () => this._closeMenu());
+    window.addEventListener("scroll", () => this._closeMenu(), true);
+
     this.canvas = document.createElement("canvas");
     this.canvas.id = "drum-preview-canvas";
     this.c2d = this.canvas.getContext("2d");
-    previewGroup.appendChild(this.canvas);
+    previewRow.appendChild(this.canvas);
+  }
+
+  _toggleMenu() {
+    const open = this.menu.style.display !== "none";
+    if (open) {
+      this._closeMenu();
+      return;
+    }
+    const r = this.btnMenu.getBoundingClientRect();
+    this.menu.style.display = "block";
+    const mw = this.menu.offsetWidth;
+    const left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 8));
+    this.menu.style.left = left + "px";
+    this.menu.style.top = r.bottom + 6 + "px";
+    this.btnMenu.classList.add("active");
+    this.nameInput.focus();
+  }
+
+  _closeMenu() {
+    this.menu.style.display = "none";
+    this.btnMenu.classList.remove("active");
+  }
+
+  /** Show the pattern name as the group title when set, else "Pattern". */
+  _updatePatternTitle() {
+    const name = (this.nameInput.value || "").trim();
+    this.patternTitle.textContent = name || "Pattern";
   }
 
   _button(text, extraClass) {
@@ -275,6 +363,85 @@ class DrumPanel {
     else this.machine.start();
     this.btnPlay.classList.toggle("active", this.machine.playing);
     this.btnPlay.textContent = this.machine.playing ? "Stop" : "Start";
+  }
+
+  /* ---------------- save / load ---------------- */
+
+  /** Push machine state into all retained widgets without firing onChange. */
+  _syncWidgetsFromMachine() {
+    const m = this.machine;
+    const w = this._widgets;
+    if (!w) return;
+    if (w.tempo) w.tempo.setValue(m.params.tempo, false);
+    if (w.snap) {
+      const idx = SNAP_DIVISIONS.indexOf(m.params.snap);
+      if (idx >= 0) w.snap.setValue(idx, false);
+    }
+    if (w.bars) w.bars.setValue(m.params.bars, false);
+    if (w.master) w.master.setValue(m.params.master, false);
+    for (const d of DRUM_INSTRUMENTS) {
+      const lv = w["level_" + d.id];
+      if (lv) lv.setValue(m.levels[d.id], false);
+    }
+    for (const id of ["bd", "sd", "cy"]) {
+      const tk = w["tone_" + id];
+      if (tk) tk.setValue(m.tones[id], false);
+    }
+    for (const id of ["lt", "mt", "ht"]) {
+      const tk = w["tune_" + id];
+      if (tk) tk.setValue(m.tunings[id], false);
+    }
+    for (const id of ["bd", "cy", "oh"]) {
+      const dk = w["decay_" + id];
+      if (dk) dk.setValue(m.decays[id], false);
+    }
+  }
+
+  _save() {
+    const data = this.machine.serialize();
+    data.name = (this.nameInput.value || "").trim() || "untitled";
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    a.download =
+      "drum-pattern-" +
+      d.getFullYear() +
+      pad(d.getMonth() + 1) +
+      pad(d.getDate()) +
+      "-" +
+      pad(d.getHours()) +
+      pad(d.getMinutes()) +
+      ".json";
+    a.href = url;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  _load() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,application/json";
+    input.addEventListener("change", async () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        this.machine.restore(data);
+        this.nameInput.value =
+          (typeof data.name === "string" && data.name.trim()) || "untitled";
+        this._updatePatternTitle();
+        this._syncWidgetsFromMachine();
+      } catch (err) {
+        alert("Could not load pattern:\n" + (err && err.message ? err.message : err));
+      }
+    });
+    input.click();
   }
 
   /* ---------------- space-to-record ---------------- */
