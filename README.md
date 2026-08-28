@@ -83,7 +83,33 @@ The **Volume** fader controls the master synth level.
 
 ## Drum Machine
 
-A TR-808-style drum section with 10 synthesized voices: Bass Drum, Snare, Low/Mid/Hi Tom, Hand Clap, Cowbell, Cymbal, and Open/Closed Hi-Hat.
+A TR‑808‑style drum section with 10 synthesized voices: Bass Drum, Snare, Low/Mid/Hi Tom, Hand Clap, Cowbell, Cymbal, and Open/Closed Hi‑Hat.
+
+### Saving and Loading Patterns
+
+#### New Features
+- **Save**: The drum‑panel UI now includes a *Save* button that snapshots the entire machine state (tempo, snap, bars, instrument levels, tones, tunings, decays, and individual hits). Clicking *Save* downloads a JSON file named something like `drum-pattern-20260828-1023.json`.
+- **Load**: A *Load* button opens the file picker. The chosen file is parsed and its contents replace the current machine state. The pattern title (`Name` field) is updated accordingly.
+
+#### File Format
+The JSON file contains an object with the following properties:
+```json
+{
+  "format": "virtual-piano-drum",
+  "version": 1,
+  "name": "<pattern‑name>",
+  "params": { ... },
+  "levels": { ... },
+  "tones": { ... },
+  "tunings": { ... },
+  "decays": { ... },
+  "hits": [ { "t": <beat‑index>, "inst": <instrument‑id> }, ... ]
+}
+```
+All numeric values are validated against the UI ranges when loading, so malformed data will result in an error dialog.
+
+If you prefer to manually edit a pattern, feel free to modify the JSON. Just be sure `format` is `virtual-piano-drum` and `version` remains `1`.
+
 
 ### Transport
 
